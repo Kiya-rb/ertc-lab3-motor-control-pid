@@ -1,0 +1,60 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[margin=1.7cm]{geometry}
+\usepackage{enumitem}\usepackage{titlesec}\usepackage[hidelinks]{hyperref}\usepackage{parskip}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
+\titlespacing*{\section}{0pt}{6pt}{2pt}
+\setlist[itemize]{topsep=2pt,itemsep=1pt,parsep=0pt,leftmargin=1.3em}
+\pagestyle{empty}
+\begin{document}
+\begin{center}
+{\Large\bfseries Motor Speed Control with a PI Controller and Anti-Windup}\\[2pt]
+{\large Lab 3 \textendash{} digital control of the T-Bot motors (and Lab 4 line following)}\\[4pt]
+{\small Embedded Real-Time Control laboratory \textendash{} M.Sc. Control Systems Engineering, University of Padova}\\
+{\small Author: Kiavash Rabbani Soudabi (ID 2141822) \textendash{} Course held by Prof.\ Alberto Morato \textendash{} 2025}
+\end{center}
+
+\section*{Purpose}
+Implement a PID controller for the T-Bot drive motors: measure the wheel speed from the quadrature encoders, close
+the loop around the motor voltage, and command a reference speed from the robot keypad, with telemetry for tuning in
+MATLAB.
+
+\section*{What I implemented}
+\begin{itemize}
+  \item \textbf{Speed measurement:} I read the TIM3/TIM4 encoder counters and computed the per-period count
+        difference, explicitly handling counter overflow and underflow so that the direction and the magnitude stay
+        correct; counts are converted to rad/s with the encoder/gear scaling.
+  \item \textbf{Digital PI controller} executed in the timer period-elapsed callback at a fixed sampling time of
+        \texttt{TS = 10\,ms}: the error is evaluated in rad/s, with the proportional and integral terms
+        $P=0.871$, $I=7.5563$, and the integral action updated as $I \mathrel{+}= I\,T_s\,e$.
+  \item \textbf{Anti-windup:} conditional integration -- if the output saturates \emph{and} the error would worsen the
+        saturation, the integral step is removed, which keeps the integrator usable after long saturation episodes.
+  \item \textbf{Output conditioning and drive:} the control signal (volts) is limited to $\pm6$\,V, scaled to PWM duty
+        against the 12\,V battery and the timer ARR value, and applied with two drive modes --
+        \texttt{ForwardCoast} (single-channel PWM) and \texttt{ForwardBreak} (complementary PWM for braking).
+  \item \textbf{Operator interface:} the reference speed is entered on the keypad (up to three digits followed by
+        \texttt{\#}, decoded with \texttt{atoi}), and the keypad decoding/handling is interrupt- and buffer-based.
+  \item \textbf{Telemetry:} the control signal and the measured quantities are streamed through the course datalogger
+        for plotting and tuning in MATLAB.
+  \item \textbf{Lab 4 (line following)} reuses this exact motor-control base and adds the line sensor handling --
+        storing the sensor pattern (\texttt{StoreBinary}) and computing the lateral error used by the steering law.
+        Lab 4 has no separate report; its implementation lives in the same code base.
+\end{itemize}
+
+\section*{Results}
+The speed loop tracks the commanded reference on both motors, with the measured step response and the control signal
+recorded by the datalogger and analysed in MATLAB. The report documents the controller structure, the gains, the
+anti-windup logic and the measured tracking behaviour. The same base was extended for the autonomous line-following
+task of Lab 4.
+
+\section*{Repository contents}
+\texttt{report/Embedded-Report-lab3.pdf} (submitted report) $\cdot$ \texttt{src/user\_code\_main.c} (USER CODE
+sections of my \texttt{main.c} -- speed measurement, PI controller with anti-windup, drive functions, keypad
+command handling; the course framework around them is not redistributed) $\cdot$ \texttt{docs/} (this overview and
+report pages).
+
+\section*{Skills demonstrated}
+Digital control implementation (PI, fixed sampling time, anti-windup), quadrature encoder interfacing and
+overflow-safe speed estimation, PWM motor drives including braking mode, embedded real-time scheduling (timer
+interrupt control loop), measurement, logging and tuning with MATLAB, bare-metal C on ARM Cortex-M.
+
+\end{document}

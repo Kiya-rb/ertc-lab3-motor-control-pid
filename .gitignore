@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+Debug/
+Release/
+*.o
+*.d
+*.su
+*.launch
+.settings/
+.metadata/
+*.eps.aux
+*.synctex.gz
+*.aux
+*.log
+*.out
+*.toc
